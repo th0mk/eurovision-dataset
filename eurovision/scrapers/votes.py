@@ -235,22 +235,24 @@ class VotesScraper(BaseScraper):
 
             # Get lyrics
             lyrics = soup.find("div", class_="lyrics_div")
+            if lyrics is not None:
+                lyrics = "\\n\\n".join(
+                    [p.get_text(separator="\\n") for p in lyrics if p is not None]
+                )
+                contestant.lyrics = lyrics
 
-            lyrics = "\\n\\n".join(
-                [p.get_text(separator="\\n") for p in lyrics if p is not None]
-            )
-
-            contestant.lyrics = lyrics
 
             # Get video URL
             youtube_url = None
             video_wrapper = soup.find("div", class_="lyrics_video_wrap")
             if video_wrapper is not None:
-                video_src = video_wrapper.find("iframe")["src"]
-                video_id = video_src.split("/")[-1].split("?")[0]
-                youtube_url = "https://youtube.com/watch?v=" + video_id
+                # Look for the first video div that's not hidden
+                video_div = video_wrapper.find("div", class_="lyrics_video_div")
+                if video_div and 'data-yt' in video_div.attrs:
+                    video_id = video_div['data-yt']
+                    youtube_url = f"https://youtube.com/watch?v={video_id}"
             contestant.youtube_url = youtube_url
-
+        
             # Get composers (rewrite this...)
             tmp = []
             composers = soup.find("h4", class_="label", text=re.compile("COMPOSERS?"))
@@ -285,8 +287,8 @@ class VotesScraper(BaseScraper):
                         contestant = get_items_for_contestant(contestant)
                         break
                     except Exception as e:
-                        print(f"Scraper is likely blocked by EurovisionWorld servers... (Attempt {n_attempts}/{max_attempts})")
-                        print(e)
+                        print(f"Error processing {contestant.page_url}, most likely blocked by EurovisionWorld servers (Attempt {n_attempts}/{max_attempts})")
+                        print(f"Error details: {str(e)}")
                         n_attempts += 1
                         time.sleep(5)  # to avoid getting temporarily blocked from scraping
         return contest
