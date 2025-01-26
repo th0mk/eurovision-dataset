@@ -44,19 +44,27 @@ if __name__ == "__main__":
     parser.add_argument(
         "--end",
         type=int,
-        default=2023,
+        default=2024,
         help="End year range of the Eurovision Song Contest",
+    )
+    parser.add_argument(
+        "--finals-only",
+        action="store_true",
+        help="Only scrape final rounds (use when scraping an upcoming year)",
     )
     args = parser.parse_args()
 
     scraper = VotesScraper()
     for y in range(args.start, args.end + 1):
-        if y < 2004:
+        if args.finals_only:
             rounds = ["final"]
-        elif y >= 2004 and y < 2008:
-            rounds = ["final", "semi-final"]
         else:
-            rounds = ["final", "semi-final-1", "semi-final-2"]
+            if y < 2004:
+                rounds = ["final"]
+            elif y >= 2004 and y < 2008:
+                rounds = ["final", "semi-final"]
+            else:
+                rounds = ["final", "semi-final-1", "semi-final-2"]
 
         contest = get_contest(y, rounds)
         to_csv(contest)
